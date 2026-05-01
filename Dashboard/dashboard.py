@@ -2,104 +2,100 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
-import os
 
-# Set page configuration
-st.set_page_config(
-    page_title="🚲 Bike Sharing Dashboard",
-    page_icon="🚲",
-    layout="wide"
-)
+st.set_page_config(page_title="🚲 Bike Sharing Dashboard", page_icon="🚲", layout="wide")
 
-# Load data
 @st.cache_data
-def load_data():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, "main_data.csv")
-    df = pd.read_csv(file_path)  # ← bukan lagi "main_data.csv" langsung
-    df['dteday'] = pd.to_datetime(df['dteday'])
-    df.set_index('dteday', inplace=True)
+def load_data(path: str = "main_data.csv"):
+    df = pd.read_csv(path, parse_dates=["dteday"], index_col="dteday")
     return df
 
-data = load_data()
+df = load_data()
 
-# Sidebar filters with date range limited to data range
-st.sidebar.header("🔎 Filters")
-start_date = st.sidebar.date_input("Start Date", min_value=data.index.min(), max_value=data.index.max(), value=data.index.min())
-end_date = st.sidebar.date_input("End Date", min_value=data.index.min(), max_value=data.index.max(), value=data.index.max())
-
+# Sidebar filter
+min_date, max_date = df.index.min().date(), df.index.max().date()
+start_date = st.sidebar.date_input("Start date", value=min_date, min_value=min_date, max_value=max_date)
+end_date   = st.sidebar.date_input("End date", value=max_date, min_value=min_date, max_value=max_date)
 if start_date > end_date:
-    st.sidebar.error("Error: Start Date must be before End Date.")
+    st.sidebar.error("⚠️ Start date must be before end date."); st.stop()
+mask = (df.index >= pd.Timestamp(start_date)) & (df.index <= pd.Timestamp(end_date))
+filtered = df.loc[mask]
+if filtered.empty:
+    st.warning("No data in selected date range."); st.stop()
 
-filtered_data = data.loc[start_date:end_date].copy()
-
-# Main dashboard content
+# Header & metrics
 st.title("🚲 Bike Sharing Dashboard")
-st.markdown("### Analisis interaktif data penyewaan sepeda (2011–2012)")
-
-# Key metrics
-st.header("📊 Key Metrics")
-total_rentals = filtered_data["cnt"].sum()
-avg_daily = filtered_data["cnt"].mean()
-peak_day = filtered_data["cnt"].idxmax()
-peak_value = filtered_data.loc[peak_day, "cnt"]
-
+st.markdown(f"Showing data from **{start_date}** to **{end_date}** ({len(filtered):,} days)")
+total_rentals = int(filtered["cnt"].sum())
+avg_daily     = round(filtered["cnt"].mean(), 1)
+peak_date     = filtered["cnt"].idxmax().date()
+peak_val      = int(filtered["cnt"].max())
 col1, col2, col3 = st.columns(3)
-col1.metric("Total Rentals", f"{total_rentals:,}")
-col2.metric("Average Daily Rentals", f"{avg_daily:.1f}")
-col3.metric("Peak Day", peak_day.strftime("%Y-%m-%d"), f"{int(peak_value):,} rentals")
+col1.metric("Total Rentals",        f"{total_rentals:,}")
+col2.metric("Avg Daily Rentals",    f"{avg_daily:,}")
+col3.metric("Peak Day",             f"{peak_date}  ({peak_val:,})")
+st.divider()
 
-# Monthly rental trend
-st.header("📈 Monthly Rental Trend")
-monthly_rentals = filtered_data["cnt"].resample("ME").sum()
+# Monthly trend
+st.subheader("📈 Monthly Rental Trend")
+monthly = (filtered.groupby([filtered.index.year, filtered.index.month])["cnt"].sum())
+monthly.index.names = ["year", "month"]
+monthly = monthly.reset_index()
+monthly["date_label"] = pd.to_datetime(monthly[["year", "month"]].assign(day=1))
+fig1, ax1 = plt.subplots(figsize=(10, 4))
+ax1.plot(monthly["date_label"], monthly["cnt"], marker="o", linewidth=1.8, markersize=4, color="#1565C0")
+ax1.fill_between(monthly["date_label"], monthly["cnt"], alpha=0.12, color="#1565C0")
+ax1.set_xlabel("Month"); ax1.set_ylabel("Total Rentals"); ax1.set_title("Monthly Rental Trend")
+ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x/1e3:.0f}k"))
+plt.xticks(rotation=45, ha="right"); plt.tight_layout()
+st.pyplot(fig1); plt.close(fig1)
 
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.plot(monthly_rentals.index, monthly_rentals.values, marker='o', color='blue')
-ax.set_xlabel("Month")
-ax.set_ylabel("Total Rentals")
-ax.set_title("Monthly Bike Rental Trend")
-plt.xticks(rotation=45)
-st.pyplot(fig)
-
-# Forecasting next 6 months
-st.header("🔮 Forecasting Next 6 Months")
-if len(monthly_rentals) >= 12:  # Minimal data untuk ARIMA
-    model = ARIMA(monthly_rentals, order=(1, 1, 1))
-    model_fit = model.fit()
-    forecast = model_fit.forecast(steps=6)
-
-    fig2, ax2 = plt.subplots(figsize=(10, 5))
-    ax2.plot(monthly_rentals.index, monthly_rentals.values, label="Historical Data", color='blue')
-    ax2.plot(forecast.index, forecast.values, label="Forecast", linestyle='--', color='orange')
-    ax2.set_xlabel("Month")
-    ax2.set_ylabel("Total Rentals")
-    ax2.set_title("Forecasted Bike Rentals for Next 6 Months")
-    ax2.legend()
-    plt.xticks(rotation=45)
-    st.pyplot(fig2)
+# ARIMA forecast
+st.subheader("🔮 6-Month Rental Forecast (ARIMA)")
+monthly_series = monthly.set_index("date_label")["cnt"].asfreq("MS")
+if len(monthly_series) >= 12:
+    try:
+        model = ARIMA(monthly_series, order=(1, 1, 1)).fit()
+        forecast = model.forecast(steps=6)
+        last_date = monthly_series.index[-1]
+        future_idx = pd.date_range(last_date, periods=7, freq="MS")[1:]
+        forecast.index = future_idx
+        fig2, ax2 = plt.subplots(figsize=(10, 4))
+        ax2.plot(monthly_series.index, monthly_series.values, label="Historical", linewidth=1.8, color="#1565C0")
+        ax2.plot(forecast.index, forecast.values, label="Forecast", linewidth=1.8, linestyle="--", color="#E53935")
+        ax2.legend(); ax2.set_xlabel("Month"); ax2.set_ylabel("Total Rentals")
+        ax2.set_title("Monthly Rentals — ARIMA(1,1,1) Forecast")
+        ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x/1e3:.0f}k"))
+        plt.xticks(rotation=45, ha="right"); plt.tight_layout()
+        st.pyplot(fig2); plt.close(fig2)
+    except Exception as e:
+        st.warning(f"ARIMA fitting failed: {e}")
 else:
-    st.warning("Data tidak cukup untuk melakukan forecasting.")
+    st.info("Not enough data for forecasting (need ≥ 12 months).")
 
+# Season barplot
+st.subheader("🍂 Average Rentals by Season")
+season_order  = ["Spring", "Summer", "Fall", "Winter"]
+season_colors = ["#4CAF50", "#FF9800", "#F44336", "#2196F3"]
+season_agg = (filtered.groupby("season")["cnt"].mean().reindex(season_order))
+fig3, ax3 = plt.subplots(figsize=(7, 4))
+bars = ax3.bar(season_order, season_agg.values, color=season_colors, edgecolor="white", linewidth=0.8)
+for bar, val in zip(bars, season_agg.values):
+    if not pd.isna(val):
+        ax3.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 40, f"{val:,.0f}", ha="center", va="bottom", fontsize=9)
+ax3.set_xlabel("Season"); ax3.set_ylabel("Avg Daily Rentals"); ax3.set_title("Average Daily Rentals by Season")
+ax3.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x/1e3:.1f}k"))
+plt.tight_layout(); st.pyplot(fig3); plt.close(fig3)
 
-# Rentals by season
-st.header("🌦️ Rentals by Season")
+# Hourly pattern (if available)
+if "hr" in filtered.columns:
+    st.subheader("⏰ Average Rentals by Hour of Day")
+    hourly_agg = filtered.groupby("hr")["cnt"].mean()
+    fig4, ax4 = plt.subplots(figsize=(10, 4))
+    ax4.fill_between(hourly_agg.index, hourly_agg.values, alpha=0.2, color="#E65100")
+    ax4.plot(hourly_agg.index, hourly_agg.values, marker=".", markersize=5, linewidth=1.8, color="#E65100")
+    ax4.set_xlabel("Hour of Day (0–23)"); ax4.set_ylabel("Avg Rentals"); ax4.set_title("Average Rentals by Hour of Day")
+    ax4.set_xticks(range(0, 24, 2)); plt.tight_layout(); st.pyplot(fig4); plt.close(fig4)
 
-season_order = ["Spring", "Summer", "Fall", "Winter"]
-
-season_avg = filtered_data.groupby("season")["cnt"].mean()\
-    .reindex(season_order)\
-    .dropna()
-
-if season_avg.empty:
-    st.warning("Tidak ada data season untuk rentang tanggal ini.")
-else:
-    fig3, ax3 = plt.subplots(figsize=(8, 5))
-    season_avg.plot(kind='bar', color='skyblue', ax=ax3)
-    ax3.set_ylabel("Average Rentals")
-    ax3.set_title("Average Rentals by Season")
-    plt.xticks(rotation=0)
-    st.pyplot(fig3)
-
-# Footer
-st.markdown("---")
-st.caption("📂 Data source: main_data.csv (gabungan data harian dan jam) | Built with Streamlit")
+st.divider()
+st.caption("📂 Data source: **main_data.csv** (dteday as DatetimeIndex, season as string labels)  |  Built with Streamlit")
