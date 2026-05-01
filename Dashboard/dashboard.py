@@ -51,7 +51,7 @@ col3.metric("Peak Day", peak_day.strftime("%Y-%m-%d"), f"{int(peak_value):,} ren
 
 # Monthly rental trend
 st.header("📈 Monthly Rental Trend")
-monthly_rentals = filtered_data["cnt"].resample("M").sum()
+monthly_rentals = filtered_data["cnt"].resample("ME").sum()
 
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.plot(monthly_rentals.index, monthly_rentals.values, marker='o', color='blue')
