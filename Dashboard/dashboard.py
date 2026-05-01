@@ -86,19 +86,9 @@ st.header("🌦️ Rentals by Season")
 
 season_order = ["Spring", "Summer", "Fall", "Winter"]
 
-# Cek apakah season sudah berupa string atau masih angka
-if filtered_data["season"].dtype == object:
-    # Sudah string, langsung groupby
-    season_avg = filtered_data.groupby("season")["cnt"].mean()\
-        .reindex(season_order)\
-        .dropna()
-else:
-    # Masih angka, baru di-map
-    season_map = {1: "Spring", 2: "Summer", 3: "Fall", 4: "Winter"}
-    filtered_data["season_name"] = filtered_data["season"].astype(int).map(season_map)
-    season_avg = filtered_data.groupby("season_name")["cnt"].mean()\
-        .reindex(season_order)\
-        .dropna()
+season_avg = filtered_data.groupby("season")["cnt"].mean()\
+    .reindex(season_order)\
+    .dropna()
 
 if season_avg.empty:
     st.warning("Tidak ada data season untuk rentang tanggal ini.")
