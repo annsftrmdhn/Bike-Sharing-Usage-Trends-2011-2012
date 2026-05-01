@@ -28,14 +28,6 @@ https://bike-sharing-usage-trends-2011-2012-nzdrvueqkaxvvumdrkskzm.streamlit.app
 ``streamlit run dashboard.py``
 4. Buka browser dan akses URL yang muncul (biasanya http://localhost:8501).
 
-## Catatan
-- Pastikan file dataset (`day_cleaned.csv` dan `hour_cleaned.csv`) berada di folder `sample_data`.
-- Jika menggunakan dataset gabungan `main_data.csv`, sesuaikan path di `dashboard.py`.
-- Gunakan virtual environment untuk menghindari konflik library.
-
-## Kontak
-Untuk pertanyaan atau bantuan lebih lanjut, silakan hubungi [email Anda] atau buka issue di repository ini.
-
 ---
 
 Terima kasih telah menggunakan dashboard ini untuk analisis data penyewaan sepeda!
