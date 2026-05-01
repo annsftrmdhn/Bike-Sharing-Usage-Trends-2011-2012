@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.tsa.arima.model import ARIMA
+import os
 
 # Set page configuration
 st.set_page_config(
@@ -13,7 +14,9 @@ st.set_page_config(
 # Load data
 @st.cache_data
 def load_data():
-    df = pd.read_csv("main_data.csv")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(current_dir, "main_data.csv")
+    df = pd.read_csv(file_path)  # ← bukan lagi "main_data.csv" langsung
     df['dteday'] = pd.to_datetime(df['dteday'])
     df.set_index('dteday', inplace=True)
     return df
@@ -28,7 +31,7 @@ end_date = st.sidebar.date_input("End Date", min_value=data.index.min(), max_val
 if start_date > end_date:
     st.sidebar.error("Error: Start Date must be before End Date.")
 
-filtered_data = data.loc[start_date:end_date]
+filtered_data = data.loc[start_date:end_date].copy()
 
 # Main dashboard content
 st.title("🚲 Bike Sharing Dashboard")
@@ -77,17 +80,35 @@ if len(monthly_rentals) >= 12:  # Minimal data untuk ARIMA
 else:
     st.warning("Data tidak cukup untuk melakukan forecasting.")
 
+
 # Rentals by season
 st.header("🌦️ Rentals by Season")
-season_map = {1: "Spring", 2: "Summer", 3: "Fall", 4: "Winter"}
-filtered_data["season_name"] = filtered_data["season"].map(season_map)
-season_avg = filtered_data.groupby("season_name")["cnt"].mean().reindex(["Spring", "Summer", "Fall", "Winter"])
 
-fig3, ax3 = plt.subplots(figsize=(8, 5))
-season_avg.plot(kind='bar', color='skyblue', ax=ax3)
-ax3.set_ylabel("Average Rentals")
-ax3.set_title("Average Rentals by Season")
-st.pyplot(fig3)
+season_order = ["Spring", "Summer", "Fall", "Winter"]
+
+# Cek apakah season sudah berupa string atau masih angka
+if filtered_data["season"].dtype == object:
+    # Sudah string, langsung groupby
+    season_avg = filtered_data.groupby("season")["cnt"].mean()\
+        .reindex(season_order)\
+        .dropna()
+else:
+    # Masih angka, baru di-map
+    season_map = {1: "Spring", 2: "Summer", 3: "Fall", 4: "Winter"}
+    filtered_data["season_name"] = filtered_data["season"].astype(int).map(season_map)
+    season_avg = filtered_data.groupby("season_name")["cnt"].mean()\
+        .reindex(season_order)\
+        .dropna()
+
+if season_avg.empty:
+    st.warning("Tidak ada data season untuk rentang tanggal ini.")
+else:
+    fig3, ax3 = plt.subplots(figsize=(8, 5))
+    season_avg.plot(kind='bar', color='skyblue', ax=ax3)
+    ax3.set_ylabel("Average Rentals")
+    ax3.set_title("Average Rentals by Season")
+    plt.xticks(rotation=0)
+    st.pyplot(fig3)
 
 # Footer
 st.markdown("---")
