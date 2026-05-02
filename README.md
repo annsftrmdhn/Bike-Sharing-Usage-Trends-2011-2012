@@ -1,33 +1,83 @@
-# Bike Sharing Data Analysis Dashboard
+# 🚲 Bike Sharing Usage Trends Dashboard (2011–2012)
 
-## Deskripsi Proyek
-Proyek ini bertujuan untuk menganalisis data penyewaan sepeda selama tahun 2011–2012 menggunakan dataset dari UCI Bike Sharing Dataset. Analisis dilakukan untuk memahami tren penyewaan sepeda berdasarkan waktu (bulanan dan per jam), pengaruh musim dan kondisi cuaca, serta memprediksi tren penyewaan di masa depan.
+Dashboard interaktif untuk menganalisis tren penggunaan layanan bike sharing selama periode 2011–2012.
 
-Dashboard interaktif dibuat menggunakan Streamlit untuk memudahkan eksplorasi data dan visualisasi hasil analisis secara real-time.
+## 📊 Pertanyaan Bisnis
 
-## Link Dashboard
-https://bike-sharing-usage-trends-2011-2012-nzdrvueqkaxvvumdrkskzm.streamlit.app/
+1. Bagaimana tren pertumbuhan total peminjaman sepeda setiap bulan selama periode Januari 2011 hingga Desember 2012, dan berapa rata-rata growth rate bulanannya?
+2. Bagaimana pola rata-rata peminjaman sepeda per jam pada hari kerja dibandingkan hari libur selama periode 2011–2012, dan pada jam berapa puncak peminjaman tertinggi terjadi di masing-masing kondisi tersebut?
+3. Musim apa yang memiliki rata-rata peminjaman sepeda harian tertinggi dan terendah selama periode 2011–2012, dan berapa selisih rata-rata peminjaman antara musim tersebut?
 
+## 📁 Struktur Proyek
 
-## Dataset
-- `day.csv` dan `hour.csv`: Dataset asli berisi data harian dan per jam.
-- `day_cleaned.csv` dan `hour_cleaned.csv`: Dataset hasil pembersihan dan preprocessing.
-- `main_data.csv` (opsional): Dataset gabungan hasil agregasi untuk analisis harian.
+```
+Bike-Sharing-Usage-Trends-2011-2012/
+├── Dashboard/
+│   ├── dashboard.py
+│   └── main_data.csv
+├── data/
+│   ├── day.csv
+│   └── hour.csv
+├── notebook.ipynb
+├── requirements.txt
+└── README.md
+```
 
-## Fitur Dashboard
-- Menampilkan metrik utama seperti total penyewaan, rata-rata harian, dan hari dengan penyewaan tertinggi.
-- Visualisasi tren penyewaan sepeda per bulan.
-- Prediksi penyewaan sepeda untuk 6 bulan ke depan menggunakan model ARIMA.
-- Analisis penyewaan berdasarkan musim dan kondisi cuaca.
+## 🛠️ Setup Environment
 
-## Cara Menjalankan
-1. Pastikan Python sudah terinstall di komputer Anda.
-2. Install dependencies dengan menjalankan:
-``pip install -r requirements.txt``
-3. Jalankan dashboard dengan perintah:
-``streamlit run dashboard.py``
-4. Buka browser dan akses URL yang muncul (biasanya http://localhost:8501).
+### Menggunakan Anaconda
 
----
+```bash
+conda create --name bike-sharing python=3.10
+conda activate bike-sharing
+pip install -r requirements.txt
+```
 
-Terima kasih telah menggunakan dashboard ini untuk analisis data penyewaan sepeda!
+### Menggunakan Virtual Environment (venv)
+
+```bash
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# Mac/Linux
+source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+## 📦 Install Library
+
+Pastikan sudah berada di dalam environment yang aktif, lalu jalankan:
+
+```bash
+pip install -r requirements.txt
+```
+
+Isi `requirements.txt`:
+
+```
+streamlit
+pandas
+matplotlib
+statsmodels
+```
+
+## ▶️ Menjalankan Dashboard Secara Lokal
+
+```bash
+cd Dashboard
+streamlit run dashboard.py
+```
+
+Dashboard akan otomatis terbuka di browser pada alamat `http://localhost:8501`
+
+## 🌐 Streamlit Cloud
+
+Dashboard juga tersedia secara online di:
+👉 **[Link Dashboard](https://share.streamlit.io)** ← ganti dengan URL deploy kamu
+
+## 📂 Sumber Data
+
+Dataset yang digunakan adalah [Bike Sharing Dataset](https://www.kaggle.com/datasets/lakshmi25npathi/bike-sharing-dataset) yang berisi data penyewaan sepeda harian dan per jam selama tahun 2011–2012.
