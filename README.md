@@ -76,7 +76,7 @@ Dashboard akan otomatis terbuka di browser pada alamat `http://localhost:8501`
 ## 🌐 Streamlit Cloud
 
 Dashboard juga tersedia secara online di:
-👉 **[Link Dashboard](https://share.streamlit.io)** ← ganti dengan URL deploy kamu
+👉 **[Link Dashboard]([https://share.streamlit.io](https://bike-sharing-usage-trends-2011-2012-z6bgr9gcrmpyuifuzm6mou.streamlit.app/))**
 
 ## 📂 Sumber Data
 
